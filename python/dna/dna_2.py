@@ -135,27 +135,35 @@ strs_longest_run_consecutive_repeats: Dict[str, int] = {}
 #    if i = True:
 
 
-STR_of_interest = "ABCD"
+str_of_interest = "AAAA"
 
-consecutive_max = 0
 for count_0, _ in enumerate(dna_str):
 
     # Find next occurence of STR of interest
-    if dna_str[count_0 : count_0 + 4] == STR_of_interest:
-
-        # Extract the rest of the DNA string;
-        # Check if the next 4 chars are our STR_of_interest;
-        # If yes, increment consecutive_current, cut the string further
-        #   by reassigning it to a cut rest_of_dna_str;
-        #   If consecutive_current is larger then the current max and assign
-        #   it as new max if so;
-
+    if dna_str[count_0:count_0+4]:
         consecutive_current = 1
-        rest_of_dna_str = dna_str[count_0 + 4 :]
-        for count_1, _ in enumerate(rest_of_dna_str):
+        pass
 
-            if rest_of_dna_str[count_1 : count_1 + 4] == STR_of_interest:
-                consecutive_current += 1
-                rest_of_dna_str = rest_of_dna_str[4:]
-                if consecutive_max < consecutive_current:
-                    consecutive_max = consecutive_current
+
+# i = 0
+# max_count = 0
+# print(f"DNA: {dna_str}")
+# for c0, _ in enumerate(dna_str):
+#     # Find an occurence of AAAA
+#     if dna_str[c0 : c0 + 4] == "AAAA":
+#
+#         # consecutive repeats; 1 as we found a "STR"
+#         current_count = 1
+#
+#         # Make a copy of the rest of the string after STR
+#         rest_of_string = dna_str[c0 + 4 :]
+#         print(rest_of_string)
+#
+#         # Check if the next four chars are also the same STR.
+#         # If yes, increase current counter and cut string (vie reassignment)
+#         if rest_of_string[0:4] == "AAAA":
+#             current_count += 1
+#             rest_of_string = rest_of_string[4:]
+#         else:
+#             max_count = current_count if current_count > max_count else max_count
+#             break))
