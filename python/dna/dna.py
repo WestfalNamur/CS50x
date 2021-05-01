@@ -19,15 +19,29 @@
 #       (with print). If the correct number of arguments are provided, you may
 #       assume that the first argument is indeed the filename of a valid CSV file,
 #       and that the second argument is the filename of a valid text file.
+#   2.  * Your program should open the CSV file and read its contents into
+#       memory.
+#       * You may assume that the first row of the CSV file will be the column
+#       names. The first column will be the word name and the remaining columns
+#       will be the STR sequences themselves.
+#   3.  * Your program should open the DNA sequence and read its contents into
+#       memory.
+#   4.  * For each of the STRs (from the first line of the CSV file), your
+#       program should compute the longest run of consecutive repeats of the
+#       STR in the DNA sequence to identify.
+
+
+# clear && mypy dna.py && black dna.py && python dna.py databases/small.csv sequences/5.txt
+
 
 import sys
 import csv
+from typing import Dict, List
 
 
 # =============================================================================
-# Read in Validate command line input.
+# Validate command line input and read into memory
 #
-#   example:  python dna.py databases/small.csv sequences/5.txt
 # =============================================================================
 
 # Check length of command line arguments. Required lenght is 3 (program name,
@@ -40,7 +54,8 @@ if len(sys.argv) != 3:
 # the STR counts for a list of individuals.
 try:
     with open(sys.argv[1], newline="") as csvfile:
-        csvfile_content = csv.reader(csvfile, delimiter=" ", quotechar="|")
+        csvfile_content = csv.reader(csvfile, delimiter=",", quotechar="|")
+        rows_csv = [row for row in csvfile_content]
         csvfile.close()
 except:
     print(f"{sys.argv[1]} does not exist or is not a valid .csv")
@@ -51,6 +66,32 @@ except:
 try:
     with open(sys.argv[2]) as txtfile:
         txtfile_content = txtfile.readlines()
+        rows_txt = [row for row in txtfile_content]
         txtfile.close()
 except:
     print(f"{sys.argv[2]} does not exist or is not a valid .txt")
+
+
+# =============================================================================
+# Read .csv and .txt content into memeory
+#
+#   CSV Conente as "organisms"
+#   * First row: colum names.
+#   * First colum: word name
+#   * Remaining colms: STR sequnces.
+#
+#   DNA sqeunece as "dna_str"
+# =============================================================================
+
+
+# Get column names: names, STR_0, STR_1, ..., STR_n
+organisms_column_names: list = rows_csv[0]
+
+# Get organims: key: name, value: STC count
+organisms: Dict[str, List[str]] = {}
+for row in rows_csv[1:]:
+    name: str = row[0]
+    organisms[name] = row[1:]
+
+# DNA as string
+dna_str: str = rows_txt[0]
