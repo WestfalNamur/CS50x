@@ -116,46 +116,34 @@ dna_str: str = rows_txt[0]
 strs_longest_run_consecutive_repeats: Dict[str, int] = {}
 
 
-# 1st elemnt in organisms_column_names is "name" so no STR.
-# for str_word in organisms_column_names[1:]:
-#
-#    x = []
-#    for count, _ in enumerate(dna_str):
-#        if dna_str[count:count+4] == str_word:
-# lst = []
-# for count, _ in enumerate(dna_str):
-#    if dna_str[count : count + 4] == "AATG":
-#        lst.append(True)
-#    else:
-#        lst.append(False)
-#
-# longest_run = 0
-# for i in lst:
-#    current_run = 0
-#    if i = True:
+def find_max_consecutive_of_str(str_word: str, dna_str: str) -> int:
+
+    count_max = 0
+    str_word_len = len(str_word)
+
+    # Loop over dna-str char by char by removing the 1st one on each iteration.
+    while len(dna_str) > 0:
+        # Check for start of a consecutive sequence
+        if dna_str[0:str_word_len] == str_word:
+            # If so, cut off STR from DNA string and set counter c to 1
+            dna_str = dna_str[str_word_len:]
+            c = 1
+            # Loop over rest of dna-str in chunks of STR-word-length. If the
+            # next chars continue the consecutive increment c further. Check
+            # if the newly increment counter it the new max.
+            while len(dna_str) > 0:
+                if dna_str[0:str_word_len] == str_word:
+                    c += 1
+                    dna_str = dna_str[str_word_len:]
+                    count_max = c if c > count_max else count_max
+                else:
+                    break
+        # Next chars are NOT out STR, continue as normaly and cut 1st char off.
+        else:
+            dna_str = dna_str[1:]
+
+    return count_max
 
 
-STR_of_interest = "ABCD"
-
-consecutive_max = 0
-for count_0, _ in enumerate(dna_str):
-
-    # Find next occurence of STR of interest
-    if dna_str[count_0 : count_0 + 4] == STR_of_interest:
-
-        # Extract the rest of the DNA string;
-        # Check if the next 4 chars are our STR_of_interest;
-        # If yes, increment consecutive_current, cut the string further
-        #   by reassigning it to a cut rest_of_dna_str;
-        #   If consecutive_current is larger then the current max and assign
-        #   it as new max if so;
-
-        consecutive_current = 1
-        rest_of_dna_str = dna_str[count_0 + 4 :]
-        for count_1, _ in enumerate(rest_of_dna_str):
-
-            if rest_of_dna_str[count_1 : count_1 + 4] == STR_of_interest:
-                consecutive_current += 1
-                rest_of_dna_str = rest_of_dna_str[4:]
-                if consecutive_max < consecutive_current:
-                    consecutive_max = consecutive_current
+print(dna_str)
+print(find_max_consecutive_of_str("AATG", dna_str))
