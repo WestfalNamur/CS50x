@@ -98,11 +98,11 @@ except:
 organisms_column_names: list = rows_csv[0]
 
 # Get organims: key: name, value: STC count
-organisms: Dict[str, List[str]] = {}
+organisms: Dict[str, List[int]] = {}
 for row in rows_csv[1:]:
 
     name: str = row[0]
-    organisms[name] = row[1:]
+    organisms[name] = [int(i) for i in row[1:]]
 
 # DNA as string
 dna_str: str = rows_txt[0]
@@ -111,9 +111,11 @@ dna_str: str = rows_txt[0]
 # =============================================================================
 # Compute the longest run of consecutive repeats each STR in
 # organisms_column_names.
-# ============================================================================
+# =============================================================================
 
 
+# Defien a function that computes the longest run of consecutive repeats of a
+# given STR in a string.
 def find_max_consecutive_of_str(str_word: str, dna_str: str) -> int:
 
     count_max = 0
@@ -126,6 +128,7 @@ def find_max_consecutive_of_str(str_word: str, dna_str: str) -> int:
             # If so, cut off STR from DNA string and set counter c to 1
             dna_str = dna_str[str_word_len:]
             c = 1
+            count_max = c if c > count_max else count_max
             # Loop over rest of dna-str in chunks of STR-word-length. If the
             # next chars continue the consecutive increment c further. Check
             # if the newly increment counter it the new max.
@@ -143,10 +146,26 @@ def find_max_consecutive_of_str(str_word: str, dna_str: str) -> int:
     return count_max
 
 
+# Compute the longest run of consecutive repeats of the STR in the DNA sequence.
 strs_max_consecutive_repeats: Dict[str, int] = {}
 for str_word in organisms_column_names[1:]:
     strs_max_consecutive_repeats[str_word] = find_max_consecutive_of_str(
         str_word, dna_str
     )
 
-print(strs_max_consecutive_repeats)
+
+# =============================================================================
+# Compare computed consecutive repeats of the STRs with origanism DNA.
+# =============================================================================
+
+no_math = True
+lst_count_vals = list(strs_max_consecutive_repeats.values())
+for name in organisms.keys():
+
+    organisms_counts = organisms[name]
+    if organisms_counts == lst_count_vals:
+        no_math = False
+        print(f"{name}")
+
+if no_math:
+    print("No match")
