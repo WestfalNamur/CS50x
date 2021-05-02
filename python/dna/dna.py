@@ -113,8 +113,6 @@ dna_str: str = rows_txt[0]
 # organisms_column_names.
 # ============================================================================
 
-strs_longest_run_consecutive_repeats: Dict[str, int] = {}
-
 
 def find_max_consecutive_of_str(str_word: str, dna_str: str) -> int:
 
@@ -145,5 +143,10 @@ def find_max_consecutive_of_str(str_word: str, dna_str: str) -> int:
     return count_max
 
 
-print(dna_str)
-print(find_max_consecutive_of_str("AATG", dna_str))
+strs_max_consecutive_repeats: Dict[str, int] = {}
+for str_word in organisms_column_names[1:]:
+    strs_max_consecutive_repeats[str_word] = find_max_consecutive_of_str(
+        str_word, dna_str
+    )
+
+print(strs_max_consecutive_repeats)
