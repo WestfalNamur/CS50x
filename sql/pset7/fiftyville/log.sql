@@ -1,17 +1,26 @@
 -- Keep a log of any SQL queries you execute as you solve the mystery.
-
 -- query crime_scene_reports with initial infos;
-SELECT description 
-FROM crime_scene_reports 
-WHERE street LIKE '%Chamberlin Street%' AND year = 2020 AND month = 7 AND day = 28;
+SELECT
+    description
+FROM
+    crime_scene_reports
+WHERE
+    street LIKE '%Chamberlin Street%'
+    AND year = 2020
+    AND month = 7
+    AND day = 28;
+
 -- - 10:15;
 -- - couthouse; 
 -- - 3x withnesses, interview transcripts mentions the courthouse;
-
 -- get these interview transcripts;
-SELECT transcript 
-FROM interviews 
-WHERE transcript LIKE "%courthouse%";
+SELECT
+    transcript
+FROM
+    interviews
+WHERE
+    transcript LIKE "%courthouse%";
+
 -- - I work at the courthouse, and I saw the hit-and-run on my way into work this morning;
 -- - I saw him talking on the phone outside the courthouse at 3:00pm. Sometime within
 --   ten minutes of the theft, I saw the thief get into a car in the courthouse parking
@@ -31,11 +40,18 @@ WHERE transcript LIKE "%courthouse%";
 -- ! Call duration < 1 minute;
 -- ! Earliest flight leaving Fiftyville;
 -- ! Tickets booked shortly after thief left courhouse;
-
 -- phone call: 10:05 to 10:25 on 28.July.2020 and < 60 sec;
-SELECT caller, receiver
-FROM phone_calls 
-WHERE month = 7 AND year = 2020 AND day = 28 AND duration < 60;
+SELECT
+    caller,
+    receiver
+FROM
+    phone_calls
+WHERE
+    month = 7
+    AND year = 2020
+    AND day = 28
+    AND duration < 60;
+
 -- (130) 555-0289|(996) 555-8899
 -- (499) 555-9472|(892) 555-8872
 -- (367) 555-5533|(375) 555-8161
@@ -45,11 +61,19 @@ WHERE month = 7 AND year = 2020 AND day = 28 AND duration < 60;
 -- (031) 555-6622|(910) 555-3251
 -- (826) 555-1652|(066) 555-9701
 -- (338) 555-6650|(704) 555-2131
-
 -- ATM: 28.July.2020, Fifer Street
-SELECT account_number, transaction_type, amount
-FROM atm_transactions
-WHERE year = 2020 AND month = 7 AND day = 28 AND atm_location LIKE "%Fifer Street%";
+SELECT
+    account_number,
+    transaction_type,
+    amount
+FROM
+    atm_transactions
+WHERE
+    year = 2020
+    AND month = 7
+    AND day = 28
+    AND atm_location LIKE "%Fifer Street%";
+
 -- 28500762|withdraw|48
 -- 28296815|withdraw|20
 -- 76054385|withdraw|60
@@ -59,19 +83,347 @@ WHERE year = 2020 AND month = 7 AND day = 28 AND atm_location LIKE "%Fifer Stree
 -- 25506511|withdraw|20
 -- 81061156|withdraw|30
 -- 26013199|withdraw|355
-
 -- flights, origin_airport_id = Fiftyville, earliest next day; 
 -- Get name of the desitnaction airport;
-SELECT city
-FROM airports
-WHERE id = (
-    SELECT destination_airport_id
-    FROM flights JOIN airports ON airports.id = flights.origin_airport_id
-    WHERE city LIKE "%Fiftyville%" AND year = 2020 AND month = 7 AND day = 29 ORDER BY hour LIMIT 1
-);
--- ! London;
+SELECT
+    city
+FROM
+    airports
+WHERE
+    id = (
+        SELECT
+            destination_airport_id
+        FROM
+            flights
+            JOIN airports ON airports.id = flights.origin_airport_id
+        WHERE
+            city LIKE "%Fiftyville%"
+            AND year = 2020
+            AND month = 7
+            AND day = 29
+        ORDER BY
+            hour
+        LIMIT
+            1
+    );
 
+-- ! London;
 -- 
-SELECT license_plate, activity
-FROM courthouse_security_logs
-WHERE year = 2020 AND month = 7 AND day = 28 AND hour = 10 AND minute > 15 AND minute < 25 AND activity = "exit
+SELECT
+    license_plate,
+    activity
+FROM
+    courthouse_security_logs
+WHERE
+    year = 2020
+    AND month = 7
+    AND day = 28
+    AND hour = 10
+    AND minute > 15
+    AND minute < 25
+    AND activity = "exit";
+
+-- Find the flight from Fiftyville to London the next day
+SELECT
+    id,
+    origin_airport_id,
+    destination_airport_id
+FROM
+    flights
+WHERE
+    year = 2020
+    AND month = 7
+    AND day = 29
+    AND origin_airport_id = (
+        SELECT
+            id
+        FROM
+            airports
+        WHERE
+            city LIKE " % Fifty % "
+    )
+    AND destination_airport_id = (
+        SELECT
+            id
+        FROM
+            airports
+        WHERE
+            city LIKE " % London % "
+    );
+
+-- Find passenegers names on board
+SELECT
+    name
+FROM
+    people
+    JOIN passengers ON passengers.passport_number = people.passport_number
+WHERE
+    flight_id = (
+        SELECT
+            id
+        FROM
+            flights
+        WHERE
+            year = 2020
+            AND month = 7
+            AND day = 29
+            AND origin_airport_id = (
+                SELECT
+                    id
+                FROM
+                    airports
+                WHERE
+                    city LIKE " % Fifty % "
+            )
+            AND destination_airport_id = (
+                SELECT
+                    id
+                FROM
+                    airports
+                WHERE
+                    city LIKE " % London % "
+            )
+    );
+
+-- get the call in the right time with caller and reviever on board and duration < 60 sec;
+SELECT
+    name
+FROM
+    people
+WHERE
+    phone_number IN (
+        SELECT
+            caller
+        FROM
+            phone_calls
+            JOIN people
+        WHERE
+            year = 2020
+            AND month = 7
+            AND day = 28
+            AND duration < 60
+    )
+    OR phone_number IN (
+        SELECT
+            receiver
+        FROM
+            phone_calls
+            JOIN people
+        WHERE
+            year = 2020
+            AND month = 7
+            AND day = 28
+            AND duration < 60
+    )
+    AND name IN (
+        SELECT
+            name
+        FROM
+            people
+            JOIN passengers ON passengers.passport_number = people.passport_number
+        WHERE
+            flight_id = (
+                SELECT
+                    id
+                FROM
+                    flights
+                WHERE
+                    year = 2020
+                    AND month = 7
+                    AND day = 29
+                    AND origin_airport_id = (
+                        SELECT
+                            id
+                        FROM
+                            airports
+                        WHERE
+                            city LIKE " % Fifty % "
+                    )
+                    AND destination_airport_id = (
+                        SELECT
+                            id
+                        FROM
+                            airports
+                        WHERE
+                            city LIKE " % London % "
+                    )
+                ORDER BY
+                    hour
+                LIMIT
+                    1
+            )
+    );
+
+-- name of people withdrewing montey at the atm
+SELECT
+    name
+FROM
+    people
+    JOIN bank_accounts ON bank_accounts.person_id = people.id
+WHERE
+    account_number IN (
+        SELECT
+            account_number
+        FROM
+            atm_transactions
+        WHERE
+            year = 2020
+            AND month = 7
+            AND day = 28
+            AND atm_location LIKE " % Fifer Street % "
+            AND transaction_type = " withdraw "
+    );
+
+-- get the call in the right time with caller and reviever on board and duration < 60 sec;
+-- only caller that also withdrew money
+SELECT
+    name
+FROM
+    people
+    JOIN bank_accounts ON bank_accounts.person_id = people.id
+WHERE
+    account_number IN (
+        SELECT
+            account_number
+        FROM
+            atm_transactions
+        WHERE
+            year = 2020
+            AND month = 7
+            AND day = 28
+            AND atm_location LIKE " % Fifer Street % "
+            AND transaction_type = " withdraw "
+    )
+    AND phone_number IN (
+        SELECT
+            caller
+        FROM
+            phone_calls
+            JOIN people
+        WHERE
+            year = 2020
+            AND month = 7
+            AND day = 28
+            AND duration < 60
+    )
+    OR phone_number IN (
+        SELECT
+            receiver
+        FROM
+            phone_calls
+            JOIN people
+        WHERE
+            year = 2020
+            AND month = 7
+            AND day = 28
+            AND duration < 60
+    )
+    AND name IN (
+        SELECT
+            name
+        FROM
+            people
+            JOIN passengers ON passengers.passport_number = people.passport_number
+        WHERE
+            flight_id = (
+                SELECT
+                    id
+                FROM
+                    flights
+                WHERE
+                    year = 2020
+                    AND month = 7
+                    AND day = 29
+                    AND origin_airport_id = (
+                        SELECT
+                            id
+                        FROM
+                            airports
+                        WHERE
+                            city LIKE " % Fifty % "
+                    )
+                    AND destination_airport_id = (
+                        SELECT
+                            id
+                        FROM
+                            airports
+                        WHERE
+                            city LIKE " % London % "
+                    )
+                ORDER BY
+                    hour
+                LIMIT
+                    1
+            )
+    );
+
+-- Next try all together.....
+SELECT
+    name
+FROM
+    people
+WHERE
+    license_plate IN (
+        SELECT
+            license_plate
+        FROM
+            courthouse_security_logs
+        WHERE
+            year = 2020
+            AND month = 7
+            AND day = 28
+            AND hour = 10
+            AND minute > 15
+            AND minute < 25
+    )
+    AND id IN (
+        SELECT
+            person_id
+        FROM
+            bank_accounts
+            JOIN atm_transactions ON atm_transactions.account_number = bank_accounts.account_number
+        WHERE
+            year = 2020
+            AND month = 7
+            AND day = 28
+            AND transaction_type LIKE "%withdraw%"
+            AND atm_location LIKE "%Fifer Street%"
+    ) -- Query calls
+    AND phone_number IN (
+        SELECT
+            caller
+        FROM
+            phone_calls
+        WHERE
+            year = 2020
+            AND month = 7
+            AND day = 28
+            AND duration < 60
+    )
+    AND passport_number IN (
+        SELECT
+            passport_number
+        FROM
+            passengers
+        WHERE
+            flight_id IN (
+                SELECT
+                    id
+                FROM
+                    flights
+                WHERE
+                    year = 2020
+                    AND month = 7
+                    AND day = 29
+                ORDER BY
+                    hour,
+                    minute ASC
+                LIMIT
+                    1
+            )
+    );
+
+-- ! ERNEST !!!!!!!!!!
+
+-- ACCOMPLICE:
+-- Ernest called the other
