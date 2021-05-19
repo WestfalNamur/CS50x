@@ -388,7 +388,7 @@ WHERE
             AND day = 28
             AND transaction_type LIKE "%withdraw%"
             AND atm_location LIKE "%Fifer Street%"
-    ) -- Query calls
+    )
     AND phone_number IN (
         SELECT
             caller
@@ -424,6 +424,56 @@ WHERE
     );
 
 -- ! ERNEST !!!!!!!!!!
-
 -- ACCOMPLICE:
 -- Ernest called the other
+-- Who did Ernst call the day before?
+SELECT
+    name
+FROM
+    people
+WHERE
+    phone_number IN (
+        SELECT
+            receiver
+        FROM
+            phone_calls
+        WHERE
+            year = 2020
+            AND month = 7
+            AND 28
+            AND caller = (
+                SELECT
+                    phone_number
+                FROM
+                    people
+                WHERE
+                    name LIKE "%Ernest%"
+            )
+    );
+
+-- Who did Ernst call the day before?
+SELECT
+    name
+FROM
+    people
+WHERE
+    phone_number IN (
+        SELECT
+            receiver
+        FROM
+            phone_calls
+        WHERE
+            year = 2020
+            AND month = 7
+            AND day = 28
+            AND caller = (
+                SELECT
+                    phone_number
+                FROM
+                    people
+                WHERE
+                    name = "Ernest"
+            )
+    );
+
+-- ! Berthold
