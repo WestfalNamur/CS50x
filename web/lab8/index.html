@@ -36,6 +36,21 @@
                 })
             })
 
+            // Check free response question
+            // 1. Select Submit element. 2. Add eventlistener to it; 3. On click
+            // get intput field value (select again and use .value). 4. Change
+            // color and set feedback2 accordingly;
+            document.querySelector('#check').addEventListener('click', (event) => {
+                let input = document.querySelector('input');
+                if (input.value === 'Turkey') {
+                    input.style.backgroundColor = 'green';
+                    document.querySelector('#feedback2').innerHTML = 'Correct!';
+                } else {
+                    input.style.backgroundColor = 'red';
+                    document.querySelector('#feedback2').innerHTML = 'Incorrect!';
+                }
+            })
+
         });
 
 
