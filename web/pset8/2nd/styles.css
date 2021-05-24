@@ -28,3 +28,30 @@
     color: rgb(33, 83, 150);
     min-height: 100px;
 }
+
+.loremNotes {
+    font-style: italic;
+}
+
+.textNormal {
+    font-size: medium;
+}
+
+.textLarge {
+    font-size: large;
+}
+
+.questionsDiv {
+    background-color: grey;
+    min-height: 100px;
+    text-align: center;
+    border-radius: 25px;
+    padding: 20px; 
+    color: white;  
+}
+
+.hobbies {
+    margin: auto;
+    width: 320px;
+    text-align: center;
+}

@@ -16,8 +16,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx"
         crossorigin="anonymous"></script>
-
     <link href="styles.css" rel="stylesheet">
+
+    <script src="./index.js"></script>
 
     <title>Hello, world!</title>
 </head>
@@ -46,15 +47,35 @@
     </div>
 
     <div class="loremDiv">
+        <h2>Some text about me:</h2>
+        <h5 class="textNormal">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
+            ut labore et
+            dolore
+            magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+            commodo
+            consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
+            pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id
+            est
+            laborum.
+        </h5>
+        <div class="loremNotes">
+            <p>Note: I think you noticed that this is just a filler text but I do not know what to write right now.
+                I can only come up with my <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">favorite song</a>.
+            </p>
+        </div>
+        <!-- <button onclick="handleIncreaseSize(this)" type="button" class="btn btn-light">Increase text size</button>-->
+    </div>
 
-    <h2>Some text about me:</h2>
-    <h5>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore
-        magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-        consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-        pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est
-        laborum.
-    </h5>
-    <p>Note: I think you noticed that this is just a filler text but I do not know what to write right now.</p>
-</div>
+    <div class="questionsDiv">
+
+        <h2 style="margin:5px">Add a question you would like to ask me: </h2>
+        <input type="text" id="userInput" placeholder="Question...">
+        <span onclick="newQuestion()" class="addBtn">Add</span>
+
+        <ul id="questions">
+        </ul>
+
+    </div>
 
 </body>
