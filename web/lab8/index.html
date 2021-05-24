@@ -10,9 +10,32 @@
 
     <script>
 
-        // Run script on page load;
+        // Wait to run the script until DOM is loaded;
         document.addEventListener('DOMContentLoaded', (event) => {
-            console.log("Hello, world!")
+
+            // handle correct answer;
+            // 1. select the correct DOMelement; 2. add event listener for
+            // click; 3. onClick change the elements color to green and
+            // update feedback1.
+            let correct = document.querySelector('.correct');
+            correct.addEventListener('click', (event) => {
+                correct.style.backgroundColor = 'green';
+                document.querySelector('#feedback1').innerHTML = 'Correct!';
+            })
+
+            // handle incorrect answers;
+            // 1. Select incorrect elements; 2. Convert to array; 3. Map over
+            // elements. 4. Add event listeners for click. 5. On click change
+            // color to red and set feedback1 to Incorret; 
+            let incorrects = document.querySelectorAll('.incorrect');
+            incorrectsArr = Array.from(incorrects); // To be able to use Array methodes;
+            incorrectsArr.map(el => {
+                el.addEventListener('click', (event) => {
+                    el.style.backgroundColor = 'red';
+                    document.querySelector('#feedback1').innerHTML = 'Incorrect!';
+                })
+            })
+
         });
 
 
