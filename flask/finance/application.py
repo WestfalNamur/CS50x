@@ -96,10 +96,6 @@ def login():
 
         # Ensure username exists and password is correct
 
-        print('====================================================================')
-        print(f'Hash is: {rows}')
-
-
         if len(rows) != 1 or not check_password_hash(rows[0][2], request.form.get("password")):
             return apology("invalid username and/or password", 403)
 
@@ -108,13 +104,12 @@ def login():
         session["user_id"] = rows[0][0]
 
         # Redirect user to home page
-        print("DONE: Login successful")
+
         return redirect("/")
 
     # User reached route via GET (as by clicking a link or via redirect)
 
     else:
-        print("DONE: Login successful")
         return render_template("login.html")
 
 
@@ -132,8 +127,48 @@ def logout():
 @app.route("/quote", methods=["GET", "POST"])
 @login_required
 def quote():
-    """Get stock quote."""
-    return apology("TODO")
+    """Get stock quote.
+    - Require that a user input a stock’s symbol, implemented as a text field
+    whose name is symbol.
+    - Submit the user’s input via POST to /quote.
+    - Odds are you’ll want to create two new templates (e.g., quote.html and
+    quoted.html). When a user visits /quote via GET, render one of those
+    templates, inside of which should be an HTML form that submits to
+    /quote via POST. In response to a POST, quote can render that second
+    template, embedding within it one or more values from lookup.
+    """
+
+    # User reached route via POST (as by submitting a form via POST)
+
+    if request.method == "POST":
+
+        # Destructure POST
+
+        stock = request.form.get("stock")
+
+        # ensure stock data was submited
+
+        if not stock:
+            return apology("must provide stock symbol")
+
+        # pull stock quote from yahoo finance
+
+        stock_quote = lookup(stock)
+
+        # Check if stock quote is valid
+
+        if stock_quote is None:
+            return apology("Stock symbol not valid, please try again")
+
+        # If valide render template
+
+        else:
+            return render_template("quoted.html", stock_quote=stock_quote)
+
+    # User reached route via GET (as by clicking a link or via redirect)
+
+    else:
+        return render_template("quote.html")
 
 
 @app.route("/register", methods=["GET", "POST"])
