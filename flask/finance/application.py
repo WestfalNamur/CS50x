@@ -47,7 +47,18 @@ if not os.environ.get("API_KEY"):
 @app.route("/")
 @login_required
 def index():
-    """Show portfolio of stocks"""
+    """Show portfolio of stocks
+
+    - Odds are you’ll want to execute multiple SELECTs. Depending on how you
+    implement your table(s), you might find GROUP BY HAVING SUM and/or WHERE
+    of interest.
+    - Odds are you’ll want to call lookup for each stock.
+    """
+
+    # Destructure
+
+    user_id = session["user_id"]
+
     return apology("TODO")
 
 
@@ -88,7 +99,6 @@ def login():
 
         # Query database for username
 
-        #rows = db.execute("SELECT * FROM users WHERE username = ?", request.form.get("username"))
         rows = db.execute(
             "SELECT * FROM users WHERE username = :username",
             {"username": request.form.get("username")}
@@ -210,12 +220,22 @@ def register():
 
         # Return apology if username already taken; a.k.a result == None;
 
-        if result:
+        if result is None:
             return apology("Username already exists.", 403)
 
-        # Remember user-name
+        # Check if successfull added
 
-        session["user_id"] = result
+        rows = db.execute(
+            "SELECT * FROM users WHERE username = :username",
+            {"username": username}
+        ).fetchall()
+
+        if not rows[0][1] == username:
+            return apology("Username could not be added to db.", 403)
+
+        # Remember user-id
+
+        session["user_id"] = rows[0][0]
 
         # Redirect to homepage
 
