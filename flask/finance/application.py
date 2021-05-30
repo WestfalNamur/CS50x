@@ -1,5 +1,7 @@
 import os
 
+import requests
+import json
 from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session
 from flask_session import Session
@@ -39,6 +41,11 @@ Session(app)
 #db = SQL("sqlite:///finance.db")
 db = sqlite3.connect('finance.db', check_same_thread=False)
 
+# db.execute(    "CREATE TABLE IF NOT EXISTS portfolio( id integer PRIMARY KEY,  )")
+
+# Add new portfolio tabel to db if not existing
+return apology("you do not have enough cash for this transaction"
+
 # Make sure API key is set
 if not os.environ.get("API_KEY"):
     raise RuntimeError("API_KEY not set")
@@ -48,6 +55,13 @@ if not os.environ.get("API_KEY"):
 @login_required
 def index():
     """Show portfolio of stocks
+
+    Complete the implementation of index in such a way that it displays an HTML
+    table summarizing, for the user currently logged in, which stocks the user
+    owns, the numbers of shares owned, the current price of each stock, and the
+    total value of each holding (i.e., shares times price). Also display the
+    user’s current cash balance along with a grand total (i.e., stocks’ total
+    value plus cash).
 
     - Odds are you’ll want to execute multiple SELECTs. Depending on how you
     implement your table(s), you might find GROUP BY HAVING SUM and/or WHERE
@@ -59,14 +73,119 @@ def index():
 
     user_id = session["user_id"]
 
+    # Query cash from user data
+
+    results = db.execute(
+        "SELECT cash FROM users WHERE id = :id",
+        {"id": user_id}
+    ).fetchall()
+    cash = results[0][0]
+
+    # Get user portfolio. Stocks owned, number of shares, current price and
+    # thier the value of each holding.
+
+    #portfolio = db.execute(
+    #    ".schema"
+    #).fetchall()
+    #print('******************************************************')
+    #print(portfolio)
+
+
+
     return apology("TODO")
 
 
 @app.route("/buy", methods=["GET", "POST"])
 @login_required
 def buy():
-    """Buy shares of stock"""
-    return apology("TODO")
+    """Buy shares of stock
+
+    Complete the implementation of buy in such a way that it enables a user
+    to buy stocks.
+
+    - Require that a user input a stock’s symbol, implemented as a text field
+    whose name is symbol. Render an apology if the input is blank or the symbol
+    does not exist (as per the return value of lookup).
+    - Require that a user input a number of shares, implemented as a text field
+    whose name is shares. Render an apology if the input is not a positive
+    integer.
+    - Submit the user’s input via POST to /buy.
+    - Odds are you’ll want to call lookup to look up a stock’s current price.
+    - Odds are you’ll want to SELECT how much cash the user currently has in
+    users.
+    - Add one or more new tables to finance.db via which to keep track of the
+    purchase. Store enough information so that you know who bought what at\
+    whatprice and when.
+        * Use appropriate SQLite types.
+        * Define UNIQUE indexes on any fields that should be unique.
+        * Define (non-UNIQUE) indexes on any fields via which you will search
+        (as via SELECT with WHERE).
+    - Render an apology, without completing a purchase, if the user cannot
+    afford the number of shares at the current price.
+    - When a purchase is complete, redirect the user back to the index page.
+    - You don’t need to worry about race conditions (or use transactions).
+    Once you’ve implemented buy correctly, you should be able to see users’
+    purchases in your new table(s) via sqlite3 or phpLiteAdmin.
+    """
+
+    # if user reached route via POST (as by submitting a form via POST)
+
+    if request.method == "POST":
+
+        # Destructure request data
+
+        stock = request.form.get("stock")
+        shares = request.form.get("shares")
+        API_KEY = os.environ.get("API_KEY")
+        user_id = session["user_id"]
+
+        # Check if valied
+
+        if (stock is None) or (shares is None):
+            return apology("Please provide stock-symbol and number of shares")
+
+        if not int(shares) >= 0:
+            return apology("Invalid number of shares.")
+
+        # Lookup stock data
+
+        url = f'https://cloud.iexapis.com/stable/stock/{stock}/quote?token={API_KEY}'
+        r = requests.get(url=url)
+        quote = r.json()
+
+        # Check if valid
+
+        if quote is None:
+            return apology("Stock symbol not valid.")
+
+        # Destructure quote
+
+        price = quote["latestPrice"]
+
+        # Calculate Cost
+
+        cost = int(shares) * price
+
+        # Evaluate if user has enough cash
+            
+        results = db.execute(
+            "SELECT cash FROM users WHERE id = :id",
+            {"id": user_id}
+        ).fetchall()
+        user_cash = results[0][0]
+        if cost > user_cash:
+            return apology("Not enough cash for transaction.")
+            
+        # Create table when creating app
+        # Continue
+        
+        
+
+
+    # else if user reached route via GET (as by clicking a link or via redirect)
+
+    else:
+        return render_template("buy.html")
 
 
 @app.route("/history")
