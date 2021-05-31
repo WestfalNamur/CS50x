@@ -3,7 +3,7 @@ import os
 import requests
 import json
 from cs50 import SQL
-from flask import Flask, flash, redirect, render_template, request, session
+from flask import Flask, flash, redirect, render_template, request, session, url_for
 from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
@@ -18,6 +18,9 @@ app = Flask(__name__)
 
 # Ensure templates are auto-reloaded
 app.config["TEMPLATES_AUTO_RELOAD"] = True
+
+# Update template enviroment
+# app.jinja_env.filters["usd"] = usd
 
 
 # Ensure responses aren't cached
@@ -64,29 +67,53 @@ def index():
     """
 
     # Destructure
-
     user_id = session["user_id"]
+    API_KEY = os.environ.get("API_KEY")
 
     # Query cash from user data
-
     results = db.execute(
         "SELECT cash FROM users WHERE id = :id",
         {"id": user_id}
     ).fetchall()
     cash = results[0][0]
 
-    # Get user portfolio. Stocks owned, number of shares, current price and
-    # thier the value of each holding.
+    # Get portfolio of user
+    portfolio_user = db.execute(
+        "SELECT * FROM portfolio WHERE user_id=:user_id",
+        {"user_id": user_id}
+    ).fetchall()
+    print(f'User portfolio is: {portfolio_user}')
 
-    #portfolio = db.execute(
-    #    ".schema"
-    #).fetchall()
-    #print('******************************************************')
-    #print(portfolio)
+    # Process portfolio_user
+    value_all = 0
+    stocks = []
+    for stock in portfolio_user:
+        # destructure
+        stock_key = stock[1]
+        quantity = stock[2]
+        # get current price
+        url = f'https://cloud.iexapis.com/stable/stock/{stock_key}/quote?token={API_KEY}'
+        res = requests.get(url=url)
+        quote = res.json()
+        price = quote["latestPrice"]
+        # Total stock value
+        total = price * quantity
+        # Add to stocks
+        stocks.append({
+            "stock": stock_key,
+            "quantity": quantity,
+            "price": price,
+            "total": total
+        })
+        # Increment total value
+        value_all += stock[2] * price
 
-
-
-    return apology("TODO")
+    return render_template(
+        "index.html",
+        stocks=stocks,
+        cash=cash,
+        total=value_all
+    )
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -183,30 +210,47 @@ def buy():
             }
         ).fetchall()
 
+        # ---------------------------------------------------------------------
+        transactions_state = db.execute("SELECT * FROM transactions;").fetchall()
+        print(f'Transaction state is now: {transactions_state}')
+        portfolio_state = db.execute("SELECT * FROM portfolio;").fetchall()
+        print(f'Portfolio state is now: {portfolio_state}')
+
         # Get number of shares from portfolio
         portfolio_user_shares = db.execute(
             "SELECT quantity FROM portfolio WHERE stock=:stock AND user_id=:user_id",
             {"stock": stock, "user_id": user_id}
         ).fetchall()
+        print(f'portfolio_user_shares: {portfolio_user_shares}')
+
+        # Check if stock already in portfolio under user
+        portfolio_user_share_x = db.execute(
+            "SELECT * FROM portfolio WHERE user_id = :user_id AND stock = :stock",
+            {"user_id": user_id, "stock": stock}
+        ).fetchall()
 
         # Add new stock to portfoltio if not existing
-        if portfolio_user_shares is None:
+        if not portfolio_user_share_x:
             db.execute(
-                "INSERT INTO portfolio (user_id, stock, quantity) VALUES (:stock, :quantity, :user_id)",
-                {"stock": stock, "quantity": shares, "user_id": user_id}
+                "INSERT INTO portfolio (user_id, stock, quantity) VALUES (:user_id, :stock, :quantity)",
+                {"user_id": user_id, "stock": stock, "quantity": shares}
             )
-        # Increment if existing
+            print(f'{stock} added.')
+        # Increment existing stock in portfolio
         else:
             db.execute(
-                "UPDATE portfolio SET quantity=quantity+:quantity WHERE stock=:stock",
-                {"quantity": shares, "stock": stock}
+                "UPDATE portfolio SET quantity=quantity + :quantity WHERE user_id = :user_id AND stock = :stock",
+                {"quantity": shares, "user_id": user_id, "stock": stock}
             )
+            print(f'{stock} quantity updated')
 
-        return render_template("index.html")
+        portfolio_state = db.execute("SELECT * FROM portfolio;").fetchall()
+        print(f'Portfolio state is now: {portfolio_state}')
+
+        return redirect(url_for("index"))
 
 
     # else if user reached route via GET (as by clicking a link or via redirect)
-
     else:
         return render_template("buy.html")
 
