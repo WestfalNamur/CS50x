@@ -9,6 +9,7 @@ from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
 from werkzeug.security import check_password_hash, generate_password_hash
 import sqlite3
+from datetime import datetime
 
 from helpers import apology, login_required, lookup, usd
 
@@ -38,18 +39,11 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 # Configure CS50 Library to use SQLite database
-#db = SQL("sqlite:///finance.db")
 db = sqlite3.connect('finance.db', check_same_thread=False)
-
-# db.execute(    "CREATE TABLE IF NOT EXISTS portfolio( id integer PRIMARY KEY,  )")
-
-# Add new portfolio tabel to db if not existing
-return apology("you do not have enough cash for this transaction"
 
 # Make sure API key is set
 if not os.environ.get("API_KEY"):
     raise RuntimeError("API_KEY not set")
-
 
 @app.route("/")
 @login_required
@@ -133,41 +127,35 @@ def buy():
     if request.method == "POST":
 
         # Destructure request data
-
         stock = request.form.get("stock")
         shares = request.form.get("shares")
         API_KEY = os.environ.get("API_KEY")
         user_id = session["user_id"]
 
         # Check if valied
-
         if (stock is None) or (shares is None):
             return apology("Please provide stock-symbol and number of shares")
 
         if not int(shares) >= 0:
             return apology("Invalid number of shares.")
+        shares = int(shares)
 
         # Lookup stock data
-
         url = f'https://cloud.iexapis.com/stable/stock/{stock}/quote?token={API_KEY}'
-        r = requests.get(url=url)
-        quote = r.json()
+        res = requests.get(url=url)
+        quote = res.json()
 
         # Check if valid
-
         if quote is None:
             return apology("Stock symbol not valid.")
 
         # Destructure quote
-
         price = quote["latestPrice"]
 
         # Calculate Cost
-
-        cost = int(shares) * price
+        cost = shares * price
 
         # Evaluate if user has enough cash
-            
         results = db.execute(
             "SELECT cash FROM users WHERE id = :id",
             {"id": user_id}
@@ -175,11 +163,46 @@ def buy():
         user_cash = results[0][0]
         if cost > user_cash:
             return apology("Not enough cash for transaction.")
-            
-        # Create table when creating app
-        # Continue
-        
-        
+
+        # Update user cash
+        db.execute(
+            "UPDATE users SET cash=cash-:cost WHERE id=:id",
+            {"cost":cost, "id": user_id}
+        )
+
+        # Add transaction to transactions table
+        transactions_add = db.execute(
+            "INSERT INTO transactions (user_id, stock, quantity, price, date) VALUES (:user_id, :stock, :quantity, :price, :date)",
+            {
+                "user_id": user_id,
+                "stock": stock,
+                "quantity": shares,
+                "price": price,
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            }
+        ).fetchall()
+
+        # Get number of shares from portfolio
+        portfolio_user_shares = db.execute(
+            "SELECT quantity FROM portfolio WHERE stock=:stock AND user_id=:user_id",
+            {"stock": stock, "user_id": user_id}
+        ).fetchall()
+
+        # Add new stock to portfoltio if not existing
+        if portfolio_user_shares is None:
+            db.execute(
+                "INSERT INTO portfolio (user_id, stock, quantity) VALUES (:stock, :quantity, :user_id)",
+                {"stock": stock, "quantity": shares, "user_id": user_id}
+            )
+        # Increment if existing
+        else:
+            db.execute(
+                "UPDATE portfolio SET quantity=quantity+:quantity WHERE stock=:stock",
+                {"quantity": shares, "stock": stock}
+            )
+
+        return render_template("index.html")
 
 
     # else if user reached route via GET (as by clicking a link or via redirect)
