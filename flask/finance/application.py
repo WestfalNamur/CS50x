@@ -435,8 +435,116 @@ def register():
 @app.route("/sell", methods=["GET", "POST"])
 @login_required
 def sell():
-    """Sell shares of stock"""
-    return apology("TODO")
+    """Sell shares of stock
+
+    - Require that a user input a stock’s symbol, implemented as a select menu
+    whose name is symbol. Render an apology if the user fails to select a
+    stock or if (somehow, once submitted) the user does not own any shares of
+    that stock.
+    - Require that a user input a number of shares, implemented as a text
+    field whose name is shares. Render an apology if the input is not a
+    positive integer or if the user does not own that many shares of the stock.
+    - Submit the user’s input via POST to /sell.
+    - When a sale is complete, redirect the user back to the index page.
+    - You don’t need to worry about race conditions (or use transactions).
+    """
+
+    # if user reached route via POST (as by submitting a form via POST)
+    if request.method == "POST":
+
+        # Destructure
+
+        API_KEY = os.environ.get("API_KEY")
+        user_id = session["user_id"]
+        stock = request.form.get("stock")
+        shares = int(request.form.get("shares"))
+
+        # Ensure both are valid
+
+        if (not stock) or (not shares):
+            return apology("Provide stock symbol and number of shares.")
+
+        if shares <= 0:
+            return apology("Number of shares must be large then 0.")
+
+        # Get available shares for sale
+
+        available_shares = db.execute(
+            "SELECT quantity FROM portfolio WHERE stock=:stock",
+            {"stock":stock}
+        ).fetchall()
+        print(f'available_shares: {available_shares}')
+        n_available_shares = available_shares[0][0]
+
+        # Check if quantity of shares is large eneough
+
+        if n_available_shares < shares:
+            return apology("Not enough shares.")
+
+        # Check if stock is tradable
+
+        url = f'https://cloud.iexapis.com/stable/stock/{stock}/quote?token={API_KEY}'
+        res = requests.get(url=url)
+        try:
+            quote = res.json()
+            price = quote["latestPrice"]
+        except:
+            return apology("Share not traded on platform.")
+
+        # Calc cash yield of transaction
+
+        cash_yield = price * shares
+
+        # Update cash ammount in users table
+
+        db.execute(
+            "UPDATE users SET cash=cash-:cash_yield WHERE id=:id",
+            {"cash_yield":cash_yield, "id": user_id}
+        )
+
+        # Add transaction to transactions table
+
+        transactions_add = db.execute(
+            "INSERT INTO transactions (user_id, stock, quantity, price, date) VALUES (:user_id, :stock, :quantity, :price, :date)",
+            {
+                "user_id": user_id,
+                "stock": stock,
+                "quantity": shares,
+                "price": price,
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            }
+        ).fetchall()
+
+        # ---------------------------------------------------------------------
+        transactions_state = db.execute("SELECT * FROM transactions;").fetchall()
+        print(f'Transaction state is now: {transactions_state}')
+        portfolio_state = db.execute("SELECT * FROM portfolio;").fetchall()
+        print(f'Portfolio state is now: {portfolio_state}')
+
+        # update share qunatity
+
+        db.execute(
+            "UPDATE portfolio SET quantity=quantity - :quantity WHERE user_id = :user_id AND stock = :stock",
+            {"quantity": shares, "user_id": user_id, "stock": stock}
+        )
+
+        # Redirect to index
+
+        return redirect("/")
+
+    else:
+
+        user_id = session["user_id"]
+
+        portfolio_user = db.execute(
+            "SELECT stock FROM portfolio WHERE user_id=:user_id",
+            {"user_id": user_id}
+        ).fetchall()
+        stocks = [stock[0] for stock in portfolio_user]
+        print(f'stocks: {stocks}')
+
+        return render_template("sell.html", stocks=stocks)
 
 
 def errorhandler(e):
