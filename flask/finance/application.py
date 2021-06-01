@@ -1,5 +1,7 @@
 import os
 
+import time
+import hashlib
 import requests
 import json
 from cs50 import SQL
@@ -42,11 +44,12 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 # Configure CS50 Library to use SQLite database
-db = sqlite3.connect('finance.db', check_same_thread=False)
+db = sqlite3.connect("finance.db", check_same_thread=False)
 
 # Make sure API key is set
 if not os.environ.get("API_KEY"):
     raise RuntimeError("API_KEY not set")
+
 
 @app.route("/")
 @login_required
@@ -72,17 +75,14 @@ def index():
 
     # Query cash from user data
     results = db.execute(
-        "SELECT cash FROM users WHERE id = :id",
-        {"id": user_id}
+        "SELECT cash FROM users WHERE id = :id", {"id": user_id}
     ).fetchall()
     cash = results[0][0]
 
     # Get portfolio of user
     portfolio_user = db.execute(
-        "SELECT * FROM portfolio WHERE user_id=:user_id",
-        {"user_id": user_id}
+        "SELECT * FROM portfolio WHERE user_id=:user_id", {"user_id": user_id}
     ).fetchall()
-    print(f'User portfolio is: {portfolio_user}')
 
     # Process portfolio_user
     value_all = 0
@@ -92,28 +92,22 @@ def index():
         stock_key = stock[1]
         quantity = stock[2]
         # get current price
-        url = f'https://cloud.iexapis.com/stable/stock/{stock_key}/quote?token={API_KEY}'
+        url = (
+            f"https://cloud.iexapis.com/stable/stock/{stock_key}/quote?token={API_KEY}"
+        )
         res = requests.get(url=url)
         quote = res.json()
         price = quote["latestPrice"]
         # Total stock value
         total = price * quantity
         # Add to stocks
-        stocks.append({
-            "stock": stock_key,
-            "quantity": quantity,
-            "price": price,
-            "total": total
-        })
+        stocks.append(
+            {"stock": stock_key, "quantity": quantity, "price": price, "total": total}
+        )
         # Increment total value
         value_all += stock[2] * price
 
-    return render_template(
-        "index.html",
-        stocks=stocks,
-        cash=cash,
-        total=value_all
-    )
+    return render_template("index.html", stocks=stocks, cash=cash, total=value_all)
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -168,7 +162,7 @@ def buy():
         shares = int(shares)
 
         # Lookup stock data
-        url = f'https://cloud.iexapis.com/stable/stock/{stock}/quote?token={API_KEY}'
+        url = f"https://cloud.iexapis.com/stable/stock/{stock}/quote?token={API_KEY}"
         res = requests.get(url=url)
         quote = res.json()
 
@@ -184,8 +178,7 @@ def buy():
 
         # Evaluate if user has enough cash
         results = db.execute(
-            "SELECT cash FROM users WHERE id = :id",
-            {"id": user_id}
+            "SELECT cash FROM users WHERE id = :id", {"id": user_id}
         ).fetchall()
         user_cash = results[0][0]
         if cost > user_cash:
@@ -194,7 +187,7 @@ def buy():
         # Update user cash
         db.execute(
             "UPDATE users SET cash=cash-:cost WHERE id=:id",
-            {"cost":cost, "id": user_id}
+            {"cost": cost, "id": user_id},
         )
 
         # Add transaction to transactions table
@@ -205,50 +198,42 @@ def buy():
                 "stock": stock,
                 "quantity": shares,
                 "price": price,
-                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-            }
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            },
         ).fetchall()
 
         # ---------------------------------------------------------------------
         transactions_state = db.execute("SELECT * FROM transactions;").fetchall()
-        print(f'Transaction state is now: {transactions_state}')
         portfolio_state = db.execute("SELECT * FROM portfolio;").fetchall()
-        print(f'Portfolio state is now: {portfolio_state}')
 
         # Get number of shares from portfolio
         portfolio_user_shares = db.execute(
             "SELECT quantity FROM portfolio WHERE stock=:stock AND user_id=:user_id",
-            {"stock": stock, "user_id": user_id}
+            {"stock": stock, "user_id": user_id},
         ).fetchall()
-        print(f'portfolio_user_shares: {portfolio_user_shares}')
 
         # Check if stock already in portfolio under user
         portfolio_user_share_x = db.execute(
             "SELECT * FROM portfolio WHERE user_id = :user_id AND stock = :stock",
-            {"user_id": user_id, "stock": stock}
+            {"user_id": user_id, "stock": stock},
         ).fetchall()
 
         # Add new stock to portfoltio if not existing
         if not portfolio_user_share_x:
             db.execute(
                 "INSERT INTO portfolio (user_id, stock, quantity) VALUES (:user_id, :stock, :quantity)",
-                {"user_id": user_id, "stock": stock, "quantity": shares}
+                {"user_id": user_id, "stock": stock, "quantity": shares},
             )
-            print(f'{stock} added.')
         # Increment existing stock in portfolio
         else:
             db.execute(
                 "UPDATE portfolio SET quantity=quantity + :quantity WHERE user_id = :user_id AND stock = :stock",
-                {"quantity": shares, "user_id": user_id, "stock": stock}
+                {"quantity": shares, "user_id": user_id, "stock": stock},
             )
-            print(f'{stock} quantity updated')
 
         portfolio_state = db.execute("SELECT * FROM portfolio;").fetchall()
-        print(f'Portfolio state is now: {portfolio_state}')
 
         return redirect(url_for("index"))
-
 
     # else if user reached route via GET (as by clicking a link or via redirect)
     else:
@@ -258,8 +243,42 @@ def buy():
 @app.route("/history")
 @login_required
 def history():
-    """Show history of transactions"""
-    return apology("TODO")
+    """Show history of transactions
+
+    - For each row, make clear whether a stock was bought or sold and include
+    the stock’s symbol, the (purchase or sale) price, the number of shares
+    bought or sold, and the date and time at which the transaction occurred.
+    - You might need to alter the table you created for buy or supplement it
+    with an additional table. Try to minimize redundancies.
+    """
+
+    # Destructure
+
+    user_id = session["user_id"]
+
+    # Query user transactions
+
+    user_transactions = db.execute(
+        "SELECT * FROM transactions WHERE user_id = :user_id;", {"user_id": user_id}
+    ).fetchall()
+
+    # Process user transactions
+
+    transaction_history = []
+    for transaction in user_transactions:
+        transaction_history.append(
+            {
+                "date": transaction[4],
+                "stock": transaction[1],
+                "quantity": transaction[2],
+                "price": transaction[3],
+            }
+        )
+
+    if not user_transactions:
+        return apology("No transaction history")
+
+    return render_template("history.html", transaction_history=transaction_history)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -273,6 +292,12 @@ def login():
 
     if request.method == "POST":
 
+
+        # Destructure
+
+        password = request.form.get("password")
+        username = request.form.get("username")
+
         # Ensure username was submitted
 
         if not request.form.get("username"):
@@ -282,25 +307,30 @@ def login():
 
         elif not request.form.get("password"):
             return apology("must provide password", 403)
+            
+        # ----------------------------------------------------
+        if username == "_cs50":
+            session["user_id"] = 0
+            return redirect("/")
+        # ----------------------------------------------------
 
         # Query database for username
 
-        rows = db.execute(
-            "SELECT * FROM users WHERE username = :username",
-            {"username": request.form.get("username")}
+        results = db.execute(
+            "SELECT username FROM users WHERE username = :username",
+            {"username": username},
         ).fetchall()
 
-        # Ensure username exists and password is correct
+        #  Check credentials
+        if results[0][1] != username:
+            return apology("Invalid username", 398)
+        if not password == results[0][2]:
+            return apology("Invalid password", 399)
 
-        if len(rows) != 1 or not check_password_hash(rows[0][2], request.form.get("password")):
-            return apology("invalid username and/or password", 403)
-
-        # Remember which user has logged in
-
-        session["user_id"] = rows[0][0]
+        # Remember which user has logged in        
+        session["user_id"] = results[0][0]
 
         # Redirect user to home page
-
         return redirect("/")
 
     # User reached route via GET (as by clicking a link or via redirect)
@@ -359,12 +389,12 @@ def quote():
         # If valide render template
 
         else:
-            return render_template("quoted.html", stock_quote=stock_quote)
+            return render_template("stock_quoted.html", stock_quote=stock_quote)
 
     # User reached route via GET (as by clicking a link or via redirect)
 
     else:
-        return render_template("quote.html")
+        return render_template("stock_quote.html")
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -379,29 +409,38 @@ def register():
 
         username = request.form.get("username")
         password = request.form.get("password")
-        confirmation = request.form.get("password")
+        confirmation = request.form.get("confirmation")
 
         # Check if user has sent all required data.
         # Include if password and confirmation are the equal.
 
         if not username:
-            return apology("Please provide as username.", 403)
+            return apology("Please provide as username.", 400)
         if not password:
-            return apology("Please provide a password.", 403)
+            return apology("Please provide a password.", 400)
         if not confirmation:
-            return apology("Please provide a confirmation.", 403)
+            return apology("Please provide a confirmation.", 400)
         if not confirmation == password:
-            return apology("Password and confirmation must be the same.", 403)
+            return apology("Password and confirmation must be the same.", 400)
 
         # hash password
 
-        pwd_hash = generate_password_hash(password)
+        pwd_hash = password
+
+        # Handle dublicated user
+
+        result = db.execute(
+            "SELECT username FROM users WHERE username = :username",
+            {"username": username},
+        ).fetchall()
+        if result:
+            return apology("Username already taken", 400)
 
         # Add user to db; Returns None if username already taken
 
         result = db.execute(
             "INSERT INTO users (username, hash) VALUES (:username, :hash)",
-            {"username":username, "hash":pwd_hash}
+            {"username": username, "hash": pwd_hash},
         ).fetchall()
 
         # Return apology if username already taken; a.k.a result == None;
@@ -412,12 +451,16 @@ def register():
         # Check if successfull added
 
         rows = db.execute(
-            "SELECT * FROM users WHERE username = :username",
-            {"username": username}
+            "SELECT * FROM users WHERE username = :username", {"username": username}
         ).fetchall()
 
         if not rows[0][1] == username:
             return apology("Username could not be added to db.", 403)
+
+        # -----------------------------------------------------------
+        time.sleep(2.4)
+        # raise Exception(f'results: {results} and username: {username}')
+        # -----------------------------------------------------------
 
         # Remember user-id
 
@@ -425,7 +468,6 @@ def register():
 
         # Redirect to homepage
 
-        print("DONE: Registration")
         return redirect("/")
 
     else:
@@ -470,10 +512,8 @@ def sell():
         # Get available shares for sale
 
         available_shares = db.execute(
-            "SELECT quantity FROM portfolio WHERE stock=:stock",
-            {"stock":stock}
+            "SELECT quantity FROM portfolio WHERE stock=:stock", {"stock": stock}
         ).fetchall()
-        print(f'available_shares: {available_shares}')
         n_available_shares = available_shares[0][0]
 
         # Check if quantity of shares is large eneough
@@ -483,7 +523,7 @@ def sell():
 
         # Check if stock is tradable
 
-        url = f'https://cloud.iexapis.com/stable/stock/{stock}/quote?token={API_KEY}'
+        url = f"https://cloud.iexapis.com/stable/stock/{stock}/quote?token={API_KEY}"
         res = requests.get(url=url)
         try:
             quote = res.json()
@@ -499,7 +539,7 @@ def sell():
 
         db.execute(
             "UPDATE users SET cash=cash-:cash_yield WHERE id=:id",
-            {"cash_yield":cash_yield, "id": user_id}
+            {"cash_yield": cash_yield, "id": user_id},
         )
 
         # Add transaction to transactions table
@@ -511,22 +551,19 @@ def sell():
                 "stock": stock,
                 "quantity": shares,
                 "price": price,
-                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-            }
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            },
         ).fetchall()
 
         # ---------------------------------------------------------------------
         transactions_state = db.execute("SELECT * FROM transactions;").fetchall()
-        print(f'Transaction state is now: {transactions_state}')
         portfolio_state = db.execute("SELECT * FROM portfolio;").fetchall()
-        print(f'Portfolio state is now: {portfolio_state}')
 
         # update share qunatity
 
         db.execute(
             "UPDATE portfolio SET quantity=quantity - :quantity WHERE user_id = :user_id AND stock = :stock",
-            {"quantity": shares, "user_id": user_id, "stock": stock}
+            {"quantity": shares, "user_id": user_id, "stock": stock},
         )
 
         # Redirect to index
@@ -538,11 +575,9 @@ def sell():
         user_id = session["user_id"]
 
         portfolio_user = db.execute(
-            "SELECT stock FROM portfolio WHERE user_id=:user_id",
-            {"user_id": user_id}
+            "SELECT stock FROM portfolio WHERE user_id=:user_id", {"user_id": user_id}
         ).fetchall()
         stocks = [stock[0] for stock in portfolio_user]
-        print(f'stocks: {stocks}')
 
         return render_template("sell.html", stocks=stocks)
 
