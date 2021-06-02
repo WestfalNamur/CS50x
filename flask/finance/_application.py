@@ -369,25 +369,20 @@ def quote():
     if request.method == "POST":
 
         # Destructure POST
-
         stock = request.form.get("stock")
 
         # ensure stock data was submited
-
         if not stock:
             return apology("must provide stock symbol")
 
         # pull stock quote from yahoo finance
-
         stock_quote = lookup(stock)
 
         # Check if stock quote is valid
-
         if stock_quote is None:
             return apology("Stock symbol not valid, please try again")
 
         # If valide render template
-
         else:
             return render_template("stock_quoted.html", stock_quote=stock_quote)
 
